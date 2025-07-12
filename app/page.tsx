@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { MapPin, FileText, Calculator, Search, Upload, Zap } from "lucide-react"
 import Link from "next/link"
-import { GeodestIllustration } from "@/components/geodesist-illustration"
+import { GeodesistIllustration } from "@/components/geodesist-illustration"
 
 export default function HomePage() {
   return (
@@ -45,7 +45,7 @@ export default function HomePage() {
 
           {/* Illustration */}
           <div className="max-w-2xl mx-auto">
-            <GeodestIllustration />
+            <GeodesistIllustration />
           </div>
         </div>
       </section>
