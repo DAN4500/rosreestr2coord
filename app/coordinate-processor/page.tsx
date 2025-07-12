@@ -2,43 +2,46 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Upload, Download, MapPin, FileText, Copy } from "lucide-react"
+import { Upload, Download, Copy, MapPin, FileText, AlertCircle, CheckCircle } from "lucide-react"
 import Link from "next/link"
 
-interface Coordinate {
+interface CoordinatePoint {
   x: number
   y: number
-  zone?: string
+  wgs84_lat?: number
+  wgs84_lon?: number
 }
 
-interface ParsedData {
+interface PlotData {
   cadastralNumber: string
   area: number
-  coordinates: Coordinate[]
-  format: string
-  zone: string
+  coordinates: CoordinatePoint[]
+  coordinateSystem: string
+  zone?: string
 }
 
 export default function CoordinateProcessor() {
   const [file, setFile] = useState<File | null>(null)
-  const [parsedData, setParsedData] = useState<ParsedData | null>(null)
+  const [plotData, setPlotData] = useState<PlotData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0]
     if (selectedFile) {
       setFile(selectedFile)
       setError(null)
+      setPlotData(null)
     }
   }
 
-  const parseXMLFile = async () => {
+  const processXMLFile = async () => {
     if (!file) return
 
     setLoading(true)
@@ -50,9 +53,9 @@ export default function CoordinateProcessor() {
       const xmlDoc = parser.parseFromString(text, "text/xml")
 
       // Check for parsing errors
-      const parseError = xmlDoc.querySelector("parsererror")
-      if (parseError) {
-        throw new Error("Некорректный XML файл")
+      const parserError = xmlDoc.querySelector("parsererror")
+      if (parserError) {
+        throw new Error("Ошибка парсинга XML файла")
       }
 
       // Extract cadastral number
@@ -65,17 +68,22 @@ export default function CoordinateProcessor() {
       const coordinates = extractCoordinates(xmlDoc)
 
       // Determine coordinate system
-      const zone = determineCoordinateZone(coordinates)
+      const coordinateSystem = determineCoordinateSystem(coordinates)
 
-      setParsedData({
+      // Convert to WGS84 if needed
+      const convertedCoordinates = convertToWGS84(coordinates, coordinateSystem)
+
+      const data: PlotData = {
         cadastralNumber,
         area,
-        coordinates,
-        format: "MSK",
-        zone,
-      })
+        coordinates: convertedCoordinates,
+        coordinateSystem,
+        zone: coordinateSystem.includes("МСК") ? coordinateSystem : undefined,
+      }
+
+      setPlotData(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка при обработке файла")
+      setError(err instanceof Error ? err.message : "Ошибка обработки файла")
     } finally {
       setLoading(false)
     }
@@ -83,7 +91,7 @@ export default function CoordinateProcessor() {
 
   const extractCadastralNumber = (xmlDoc: Document): string => {
     // Try different possible selectors for cadastral number
-    const selectors = ["CadastralNumber", "cadastral_number", "[*|CadastralNumber]", "Parcels Parcel CadastralNumber"]
+    const selectors = ["CadastralNumber", "cadastralNumber", "[*|CadastralNumber]", "cadastral_number"]
 
     for (const selector of selectors) {
       const element = xmlDoc.querySelector(selector)
@@ -97,7 +105,7 @@ export default function CoordinateProcessor() {
 
   const extractArea = (xmlDoc: Document): number => {
     // Try different possible selectors for area
-    const selectors = ["Area", "area", "AreaValue", "[*|Area]", "Parcels Parcel Area"]
+    const selectors = ["Area", "area", "AreaValue", "[*|Area]"]
 
     for (const selector of selectors) {
       const element = xmlDoc.querySelector(selector)
@@ -112,18 +120,33 @@ export default function CoordinateProcessor() {
     return 0
   }
 
-  const extractCoordinates = (xmlDoc: Document): Coordinate[] => {
-    const coordinates: Coordinate[] = []
+  const extractCoordinates = (xmlDoc: Document): CoordinatePoint[] => {
+    const coordinates: CoordinatePoint[] = []
 
-    // Try different coordinate selectors
-    const coordinateSelectors = ["Coordinate", "coordinates", "Point", "pos", "X Y", "Ordinate"]
+    // Try different coordinate extraction methods
+    const coordinateSelectors = ["gml\\:coordinates", "coordinates", "gml\\:pos", "pos", "Coordinate"]
 
-    // Look for coordinate pairs
-    const xElements = xmlDoc.querySelectorAll('X, x, Ordinate[name="X"]')
-    const yElements = xmlDoc.querySelectorAll('Y, y, Ordinate[name="Y"]')
+    for (const selector of coordinateSelectors) {
+      const elements = xmlDoc.querySelectorAll(selector)
 
-    if (xElements.length === yElements.length && xElements.length > 0) {
-      for (let i = 0; i < xElements.length; i++) {
+      for (const element of elements) {
+        const text = element.textContent?.trim()
+        if (text) {
+          const coords = parseCoordinateString(text)
+          coordinates.push(...coords)
+        }
+      }
+
+      if (coordinates.length > 0) break
+    }
+
+    // If no coordinates found, try alternative methods
+    if (coordinates.length === 0) {
+      // Try extracting from X, Y elements
+      const xElements = xmlDoc.querySelectorAll("X, x")
+      const yElements = xmlDoc.querySelectorAll("Y, y")
+
+      for (let i = 0; i < Math.min(xElements.length, yElements.length); i++) {
         const x = Number.parseFloat(xElements[i].textContent || "0")
         const y = Number.parseFloat(yElements[i].textContent || "0")
 
@@ -133,315 +156,434 @@ export default function CoordinateProcessor() {
       }
     }
 
-    // If no coordinates found, try pos elements (GML format)
-    if (coordinates.length === 0) {
-      const posElements = xmlDoc.querySelectorAll("pos, gml\\:pos")
-      posElements.forEach((pos) => {
-        const coords = pos.textContent?.trim().split(/\s+/)
-        if (coords && coords.length >= 2) {
-          const x = Number.parseFloat(coords[0])
-          const y = Number.parseFloat(coords[1])
-          if (!isNaN(x) && !isNaN(y)) {
-            coordinates.push({ x, y })
-          }
+    return coordinates
+  }
+
+  const parseCoordinateString = (coordString: string): CoordinatePoint[] => {
+    const coordinates: CoordinatePoint[] = []
+
+    // Handle different coordinate formats
+    const cleanString = coordString.replace(/\s+/g, " ").trim()
+
+    // Try comma-separated pairs
+    if (cleanString.includes(",")) {
+      const pairs = cleanString.split(/\s+/)
+      for (const pair of pairs) {
+        const [xStr, yStr] = pair.split(",")
+        const x = Number.parseFloat(xStr)
+        const y = Number.parseFloat(yStr)
+
+        if (!isNaN(x) && !isNaN(y)) {
+          coordinates.push({ x, y })
         }
-      })
+      }
+    } else {
+      // Try space-separated coordinates
+      const numbers = cleanString
+        .split(/\s+/)
+        .map(Number.parseFloat)
+        .filter((n) => !isNaN(n))
+
+      for (let i = 0; i < numbers.length - 1; i += 2) {
+        coordinates.push({
+          x: numbers[i],
+          y: numbers[i + 1],
+        })
+      }
     }
 
     return coordinates
   }
 
-  const determineCoordinateZone = (coordinates: Coordinate[]): string => {
+  const determineCoordinateSystem = (coordinates: CoordinatePoint[]): string => {
     if (coordinates.length === 0) return "Неизвестно"
 
-    const firstCoord = coordinates[0]
+    const firstPoint = coordinates[0]
 
-    // Determine zone based on X coordinate (for MSK zones)
-    if (firstCoord.x > 7000000) return "МСК-77"
-    if (firstCoord.x > 6000000) return "МСК-78"
-    if (firstCoord.x > 5000000) return "МСК-79"
-    if (firstCoord.x > 4000000) return "МСК-80"
-
-    // Check if it's WGS84 (latitude/longitude)
-    if (firstCoord.x >= -180 && firstCoord.x <= 180 && firstCoord.y >= -90 && firstCoord.y <= 90) {
+    // Check if coordinates are in geographic format (lat/lon)
+    if (firstPoint.x >= -180 && firstPoint.x <= 180 && firstPoint.y >= -90 && firstPoint.y <= 90) {
       return "WGS84"
     }
 
-    return "МСК (зона не определена)"
-  }
-
-  const convertToWGS84 = (coord: Coordinate, zone: string): Coordinate => {
-    // Simplified conversion - in real implementation you'd use proper projection libraries
-    // This is a basic approximation for demonstration
-    if (zone.includes("WGS84")) return coord
-
-    // Basic MSK to WGS84 conversion (simplified)
-    const lat = coord.y / 111000 + 55.7558 // Approximate for Moscow region
-    const lon = coord.x / 111000 + 37.6176
-
-    return { x: lon, y: lat }
-  }
-
-  const exportToFormat = (format: "json" | "csv" | "kml" | "txt") => {
-    if (!parsedData) return
-
-    let content = ""
-    const filename = `coordinates_${parsedData.cadastralNumber}.${format}`
-
-    switch (format) {
-      case "json":
-        content = JSON.stringify(parsedData, null, 2)
-        break
-
-      case "csv":
-        content = "X,Y,Latitude,Longitude\n"
-        parsedData.coordinates.forEach((coord) => {
-          const wgs84 = convertToWGS84(coord, parsedData.zone)
-          content += `${coord.x},${coord.y},${wgs84.y},${wgs84.x}\n`
-        })
-        break
-
-      case "kml":
-        content = generateKML(parsedData)
-        break
-
-      case "txt":
-        content = `Кадастровый номер: ${parsedData.cadastralNumber}\n`
-        content += `Площадь: ${parsedData.area} кв.м\n`
-        content += `Система координат: ${parsedData.zone}\n\n`
-        content += "Координаты:\n"
-        parsedData.coordinates.forEach((coord, index) => {
-          content += `${index + 1}. X: ${coord.x}, Y: ${coord.y}\n`
-        })
-        break
+    // Check for Moscow coordinate systems based on coordinate ranges
+    if (firstPoint.x > 200000 && firstPoint.x < 800000) {
+      if (firstPoint.y > 2000000 && firstPoint.y < 3000000) {
+        return "МСК-77 (зона 1)"
+      } else if (firstPoint.y > 6000000 && firstPoint.y < 7000000) {
+        return "МСК-77 (зона 2)"
+      }
     }
 
-    const blob = new Blob([content], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = filename
-    a.click()
+    // Default assumption for large coordinates
+    if (firstPoint.x > 100000) {
+      return "МСК-77"
+    }
+
+    return "Локальная система"
+  }
+
+  const convertToWGS84 = (coordinates: CoordinatePoint[], system: string): CoordinatePoint[] => {
+    return coordinates.map((coord) => {
+      let lat: number, lon: number
+
+      if (system === "WGS84") {
+        lat = coord.y
+        lon = coord.x
+      } else if (system.includes("МСК-77")) {
+        // Simplified conversion for Moscow coordinate system
+        // In real implementation, you would use proper transformation formulas
+        const zone = system.includes("зона 1") ? 1 : 2
+
+        if (zone === 1) {
+          // Approximate conversion for MSK-77 zone 1
+          lat = 55.0 + (coord.y - 2300000) / 111000
+          lon = 37.0 + (coord.x - 300000) / 65000
+        } else {
+          // Approximate conversion for MSK-77 zone 2
+          lat = 55.0 + (coord.y - 6300000) / 111000
+          lon = 37.0 + (coord.x - 300000) / 65000
+        }
+      } else {
+        // Default approximate conversion for Moscow region
+        lat = 55.7558 + (coord.y - 2000000) / 111000
+        lon = 37.6176 + (coord.x - 400000) / 65000
+      }
+
+      return {
+        ...coord,
+        wgs84_lat: lat,
+        wgs84_lon: lon,
+      }
+    })
+  }
+
+  const exportToJSON = () => {
+    if (!plotData) return
+
+    const dataStr = JSON.stringify(plotData, null, 2)
+    const dataBlob = new Blob([dataStr], { type: "application/json" })
+    const url = URL.createObjectURL(dataBlob)
+
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `coordinates_${plotData.cadastralNumber || "unknown"}.json`
+    link.click()
+
     URL.revokeObjectURL(url)
   }
 
-  const generateKML = (data: ParsedData): string => {
-    const coordinates = data.coordinates
-      .map((coord) => {
-        const wgs84 = convertToWGS84(coord, data.zone)
-        return `${wgs84.x},${wgs84.y},0`
-      })
-      .join(" ")
+  const exportToCSV = () => {
+    if (!plotData) return
 
-    return `<?xml version="1.0" encoding="UTF-8"?>
+    const headers = ["№", "X (исходная)", "Y (исходная)", "Широта (WGS84)", "Долгота (WGS84)"]
+    const rows = plotData.coordinates.map((coord, index) => [
+      index + 1,
+      coord.x.toFixed(3),
+      coord.y.toFixed(3),
+      coord.wgs84_lat?.toFixed(8) || "",
+      coord.wgs84_lon?.toFixed(8) || "",
+    ])
+
+    const csvContent = [headers, ...rows].map((row) => row.join(",")).join("\n")
+    const dataBlob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(dataBlob)
+
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `coordinates_${plotData.cadastralNumber || "unknown"}.csv`
+    link.click()
+
+    URL.revokeObjectURL(url)
+  }
+
+  const exportToKML = () => {
+    if (!plotData) return
+
+    const kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>Участок ${data.cadastralNumber}</name>
+    <name>Участок ${plotData.cadastralNumber}</name>
     <Placemark>
-      <name>Кадастровый участок ${data.cadastralNumber}</name>
-      <description>Площадь: ${data.area} кв.м</description>
+      <name>Границы участка</name>
+      <description>Кадастровый номер: ${plotData.cadastralNumber}
+Площадь: ${plotData.area} кв.м
+Система координат: ${plotData.coordinateSystem}</description>
       <Polygon>
         <outerBoundaryIs>
           <LinearRing>
-            <coordinates>${coordinates}</coordinates>
+            <coordinates>
+${plotData.coordinates
+  .map((coord) => `${coord.wgs84_lon?.toFixed(8) || coord.x},${coord.wgs84_lat?.toFixed(8) || coord.y},0`)
+  .join("\n")}
+            </coordinates>
           </LinearRing>
         </outerBoundaryIs>
       </Polygon>
     </Placemark>
   </Document>
 </kml>`
+
+    const dataBlob = new Blob([kmlContent], { type: "application/vnd.google-earth.kml+xml" })
+    const url = URL.createObjectURL(dataBlob)
+
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `coordinates_${plotData.cadastralNumber || "unknown"}.kml`
+    link.click()
+
+    URL.revokeObjectURL(url)
   }
 
-  const copyCoordinates = () => {
-    if (!parsedData) return
+  const copyCoordinates = async () => {
+    if (!plotData) return
 
-    const text = parsedData.coordinates.map((coord, index) => `${index + 1}. X: ${coord.x}, Y: ${coord.y}`).join("\n")
+    const coordText = plotData.coordinates
+      .map(
+        (coord, index) =>
+          `${index + 1}. ${coord.wgs84_lat?.toFixed(8) || coord.y}, ${coord.wgs84_lon?.toFixed(8) || coord.x}`,
+      )
+      .join("\n")
 
-    navigator.clipboard.writeText(text)
+    try {
+      await navigator.clipboard.writeText(coordText)
+      // You could add a toast notification here
+    } catch (err) {
+      console.error("Failed to copy coordinates:", err)
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-block mb-4">
-            <div className="flex items-center justify-center gap-2 text-2xl font-bold text-blue-600">
-              <MapPin className="h-8 w-8" />
-              кадастровик.рф
-            </div>
-          </Link>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Обработка координат из XML</h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Извлечение и конвертация координат из XML файлов Росреестра
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2 text-2xl font-bold text-blue-600">
+              <MapPin className="h-6 w-6" />
+              ГЕОДЕЗИК
+            </Link>
+            <nav className="hidden md:flex items-center gap-6">
+              <Link href="/poisk-uchastka" className="text-gray-600 hover:text-blue-600">
+                Поиск участков
+              </Link>
+              <Link href="/xml-to-dxf-converter" className="text-gray-600 hover:text-blue-600">
+                XML в DXF
+              </Link>
+              <Link href="/coordinate-processor" className="text-blue-600 font-medium">
+                Обработка координат
+              </Link>
+            </nav>
+          </div>
         </div>
+      </header>
 
-        <div className="max-w-4xl mx-auto space-y-6">
+      <main className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Обработка координат из XML</h1>
+            <p className="text-lg text-gray-600">
+              Извлекайте и конвертируйте координаты из XML файлов Росреестра в различные форматы
+            </p>
+          </div>
+
           {/* Upload Section */}
-          <Card>
+          <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Upload className="h-5 w-5" />
                 Загрузка XML файла
               </CardTitle>
-              <CardDescription>Выберите XML файл с данными участка из Росреестра</CardDescription>
+              <CardDescription>
+                Поддерживаются XML файлы межевых планов, технических планов и выписок ЕГРН
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="xml-file">XML файл</Label>
-                <Input id="xml-file" type="file" accept=".xml" onChange={handleFileUpload} className="mt-1" />
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="xml-file">Выберите XML файл</Label>
+                  <Input
+                    id="xml-file"
+                    type="file"
+                    accept=".xml"
+                    onChange={handleFileSelect}
+                    ref={fileInputRef}
+                    className="mt-1"
+                  />
+                </div>
+
+                {file && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <FileText className="h-4 w-4" />
+                    <span>
+                      {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                    </span>
+                  </div>
+                )}
+
+                <Button onClick={processXMLFile} disabled={!file || loading} className="w-full">
+                  {loading ? "Обработка..." : "Обработать файл"}
+                </Button>
               </div>
-
-              {file && (
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-700">
-                    Выбран файл: <strong>{file.name}</strong> ({(file.size / 1024).toFixed(1)} KB)
-                  </p>
-                </div>
-              )}
-
-              <Button onClick={parseXMLFile} disabled={!file || loading} className="w-full">
-                {loading ? "Обработка..." : "Обработать файл"}
-              </Button>
-
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-red-700">{error}</p>
-                </div>
-              )}
             </CardContent>
           </Card>
 
-          {/* Results Section */}
-          {parsedData && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Результаты обработки
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Basic Info */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <h3 className="font-semibold text-gray-700">Кадастровый номер</h3>
-                    <p className="text-lg font-mono">{parsedData.cadastralNumber}</p>
-                  </div>
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <h3 className="font-semibold text-gray-700">Площадь</h3>
-                    <p className="text-lg">{parsedData.area} кв.м</p>
-                  </div>
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <h3 className="font-semibold text-gray-700">Система координат</h3>
-                    <p className="text-lg">{parsedData.zone}</p>
-                  </div>
+          {/* Error Display */}
+          {error && (
+            <Card className="mb-8 border-red-200 bg-red-50">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-red-700">
+                  <AlertCircle className="h-5 w-5" />
+                  <span className="font-medium">Ошибка обработки:</span>
                 </div>
-
-                {/* Coordinates */}
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold">Координаты ({parsedData.coordinates.length} точек)</h3>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={copyCoordinates}
-                      className="flex items-center gap-2 bg-transparent"
-                    >
-                      <Copy className="h-4 w-4" />
-                      Копировать
-                    </Button>
-                  </div>
-
-                  <div className="max-h-60 overflow-y-auto border rounded-lg">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50 sticky top-0">
-                        <tr>
-                          <th className="px-3 py-2 text-left">№</th>
-                          <th className="px-3 py-2 text-left">X</th>
-                          <th className="px-3 py-2 text-left">Y</th>
-                          <th className="px-3 py-2 text-left">Широта (WGS84)</th>
-                          <th className="px-3 py-2 text-left">Долгота (WGS84)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {parsedData.coordinates.map((coord, index) => {
-                          const wgs84 = convertToWGS84(coord, parsedData.zone)
-                          return (
-                            <tr key={index} className="border-t">
-                              <td className="px-3 py-2">{index + 1}</td>
-                              <td className="px-3 py-2 font-mono">{coord.x.toFixed(2)}</td>
-                              <td className="px-3 py-2 font-mono">{coord.y.toFixed(2)}</td>
-                              <td className="px-3 py-2 font-mono">{wgs84.y.toFixed(6)}</td>
-                              <td className="px-3 py-2 font-mono">{wgs84.x.toFixed(6)}</td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Export Options */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">Экспорт данных</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <Button
-                      variant="outline"
-                      onClick={() => exportToFormat("json")}
-                      className="flex items-center gap-2"
-                    >
-                      <Download className="h-4 w-4" />
-                      JSON
-                    </Button>
-                    <Button variant="outline" onClick={() => exportToFormat("csv")} className="flex items-center gap-2">
-                      <Download className="h-4 w-4" />
-                      CSV
-                    </Button>
-                    <Button variant="outline" onClick={() => exportToFormat("kml")} className="flex items-center gap-2">
-                      <Download className="h-4 w-4" />
-                      KML
-                    </Button>
-                    <Button variant="outline" onClick={() => exportToFormat("txt")} className="flex items-center gap-2">
-                      <Download className="h-4 w-4" />
-                      TXT
-                    </Button>
-                  </div>
-                </div>
+                <p className="text-red-600 mt-1">{error}</p>
               </CardContent>
             </Card>
           )}
 
-          {/* Info Section */}
-          <Card>
+          {/* Results Section */}
+          {plotData && (
+            <div className="space-y-6">
+              {/* Plot Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    Информация об участке
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Кадастровый номер</Label>
+                      <p className="text-lg font-mono">{plotData.cadastralNumber}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Площадь</Label>
+                      <p className="text-lg">{plotData.area.toLocaleString()} кв.м</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Система координат</Label>
+                      <p className="text-lg">{plotData.coordinateSystem}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Coordinates Table */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Координаты точек ({plotData.coordinates.length} точек)</CardTitle>
+                  <CardDescription>Исходные координаты и их преобразование в WGS84</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left p-2">№</th>
+                          <th className="text-left p-2">X (исходная)</th>
+                          <th className="text-left p-2">Y (исходная)</th>
+                          <th className="text-left p-2">Широта (WGS84)</th>
+                          <th className="text-left p-2">Долгота (WGS84)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {plotData.coordinates.map((coord, index) => (
+                          <tr key={index} className="border-b">
+                            <td className="p-2">{index + 1}</td>
+                            <td className="p-2 font-mono">{coord.x.toFixed(3)}</td>
+                            <td className="p-2 font-mono">{coord.y.toFixed(3)}</td>
+                            <td className="p-2 font-mono">{coord.wgs84_lat?.toFixed(8) || "N/A"}</td>
+                            <td className="p-2 font-mono">{coord.wgs84_lon?.toFixed(8) || "N/A"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Export Options */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Download className="h-5 w-5" />
+                    Экспорт данных
+                  </CardTitle>
+                  <CardDescription>Сохраните координаты в удобном для вас формате</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Button onClick={exportToJSON} variant="outline" className="w-full bg-transparent">
+                      <Download className="mr-2 h-4 w-4" />
+                      JSON
+                    </Button>
+                    <Button onClick={exportToCSV} variant="outline" className="w-full bg-transparent">
+                      <Download className="mr-2 h-4 w-4" />
+                      CSV
+                    </Button>
+                    <Button onClick={exportToKML} variant="outline" className="w-full bg-transparent">
+                      <Download className="mr-2 h-4 w-4" />
+                      KML
+                    </Button>
+                    <Button onClick={copyCoordinates} variant="outline" className="w-full bg-transparent">
+                      <Copy className="mr-2 h-4 w-4" />
+                      Копировать
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Instructions */}
+          <Card className="mt-8">
             <CardHeader>
-              <CardTitle>Поддерживаемые форматы</CardTitle>
+              <CardTitle>Инструкция по использованию</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="space-y-4 text-sm text-gray-600">
                 <div>
-                  <h4 className="font-semibold mb-2">Входные форматы:</h4>
-                  <ul className="space-y-1 text-gray-600">
-                    <li>• XML файлы Росреестра</li>
-                    <li>• GML файлы</li>
-                    <li>• Кадастровые выписки в XML</li>
+                  <h4 className="font-medium text-gray-900 mb-2">Поддерживаемые форматы:</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>XML файлы межевых планов</li>
+                    <li>XML файлы технических планов</li>
+                    <li>Выписки из ЕГРН в формате XML</li>
+                    <li>GML файлы с координатными данными</li>
                   </ul>
                 </div>
+
                 <div>
-                  <h4 className="font-semibold mb-2">Выходные форматы:</h4>
-                  <ul className="space-y-1 text-gray-600">
-                    <li>• JSON - структурированные данные</li>
-                    <li>• CSV - таблица координат</li>
-                    <li>• KML - для Google Earth</li>
-                    <li>• TXT - текстовый формат</li>
+                  <h4 className="font-medium text-gray-900 mb-2">Форматы экспорта:</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>
+                      <strong>JSON</strong> - структурированные данные для программной обработки
+                    </li>
+                    <li>
+                      <strong>CSV</strong> - таблица координат для Excel и других программ
+                    </li>
+                    <li>
+                      <strong>KML</strong> - для отображения в Google Earth и ГИС-системах
+                    </li>
+                    <li>
+                      <strong>Копирование</strong> - текстовый формат для быстрой вставки
+                    </li>
                   </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-2">Системы координат:</h4>
+                  <p>
+                    Инструмент автоматически определяет систему координат и выполняет приблизительное преобразование в
+                    WGS84. Для точных геодезических работ рекомендуется использовать специализированное ПО с точными
+                    параметрами трансформации.
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

@@ -1,272 +1,181 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { MapPin, FileText, Calculator, Search, Upload, Zap } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
-import { GeodesistIllustration } from "@/components/geodesist-illustration"
+import { MapPin, MessageCircle, CheckCircle, Search } from "lucide-react"
+import { GeodesicLogo } from "@/components/logo"
+import { AdvancedCalculator } from "@/components/advanced-calculator"
 
-export default function HomePage() {
+export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
-      {/* Header */}
-      <header className="container mx-auto px-4 py-6">
-        <div className="flex items-center justify-center">
-          <div className="flex items-center gap-2 text-3xl font-bold text-blue-600">
-            <MapPin className="h-8 w-8" />
-            кадастровик.рф
+    <div className="min-h-screen flex flex-col">
+      <header className="container mx-auto py-4 px-4 flex flex-col md:flex-row justify-between items-center bg-white rounded-b-lg shadow-sm">
+        <div className="flex items-center">
+          <div className="mr-2">
+            <GeodesicLogo className="h-14 w-auto" />
+          </div>
+          <div className="text-3xl font-bold text-blue-500">
+            ГЕО<span className="text-orange-400">Д</span>ЕЗИК
+          </div>
+        </div>
+
+        <div className="text-yellow-500 font-medium mt-2 md:mt-0 text-center">
+          Занимаемся выносом в натуру границ
+          <br />
+          земельного участка с 2005 года
+        </div>
+
+        <div className="mt-4 md:mt-0">
+          <div className="flex flex-col items-end">
+            <a
+              href="https://wa.me/89296727849"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center text-white bg-green-500 hover:bg-green-600 transition-colors px-3 py-2 rounded-md"
+            >
+              <MessageCircle className="mr-2 h-4 w-4" />
+              <span>WhatsApp</span>
+            </a>
+            <div className="flex items-center mt-2">
+              <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+              <span>сейчас online</span>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-12 text-center">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-            Кадастровые услуги
-            <span className="text-blue-600"> онлайн</span>
-          </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Профессиональные геодезические услуги, калькуляторы стоимости и поиск участков. Быстро, удобно, надежно.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Link href="/poisk-uchastka">
-              <Button size="lg" className="w-full sm:w-auto">
-                <Search className="mr-2 h-5 w-5" />
-                Найти участок
-              </Button>
-            </Link>
-            <Link href="/tehnicheskiy-plan">
-              <Button variant="outline" size="lg" className="w-full sm:w-auto bg-transparent">
-                <Calculator className="mr-2 h-5 w-5" />
-                Рассчитать стоимость
-              </Button>
-            </Link>
+      <main className="flex-grow">
+        <section className="relative py-16 md:py-24">
+          <div className="absolute inset-0 z-0">
+            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-transparent z-10"></div>
+            <Image
+              src="/placeholder.svg?height=800&width=1600"
+              alt="Геодезические работы"
+              fill
+              className="object-cover"
+              priority
+            />
           </div>
 
-          {/* Illustration */}
-          <div className="max-w-2xl mx-auto">
-            <GeodesistIllustration />
+          <div className="container mx-auto px-4 relative z-20 text-center">
+            <h1 className="text-4xl md:text-5xl font-bold text-blue-500 mb-2">Вынос границ земельного участка</h1>
+            <h2 className="text-2xl md:text-3xl text-blue-700 mb-4">в Москве и Московской области</h2>
+            <h3 className="text-xl md:text-2xl mb-6">
+              по фиксированной цене от <span className="text-red-600 font-bold text-3xl md:text-4xl">6000₽</span>
+            </h3>
+
+            <p className="max-w-2xl mx-auto mb-8">Рассчитайте точную стоимость работ с учетом количества точек.</p>
+
+            <div className="flex justify-center mb-8">
+              <AdvancedCalculator />
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Services Grid */}
-      <section className="container mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">Наши услуги</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          {/* Technical Plan */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-blue-600" />
-                Технический план
-              </CardTitle>
-              <CardDescription>Изготовление технических планов для постановки на кадастровый учет</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="text-sm text-gray-600">
-                  • Жилые дома и постройки
-                  <br />• Нежилые здания
-                  <br />• Помещения и сооружения
-                </div>
-                <div className="text-lg font-semibold text-green-600">от 15 000 ₽</div>
-                <Link href="/tehnicheskiy-plan">
-                  <Button className="w-full">Рассчитать стоимость</Button>
+        <section className="py-12 bg-white">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-3xl font-bold text-center mb-8">Наши услуги</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[
+                { name: "Вынос границ земельного участка", link: "/" },
+                { name: "Технический план", link: "/tehnicheskiy-plan" },
+                { name: "Межевание земельного участка", link: "/mezhevanie-zemelnogo-uchastka" },
+                { name: "Топографическая съемка", link: "/topograficheskaya-semka" },
+              ].map((service, index) => (
+                <Link key={index} href={service.link}>
+                  <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer">
+                    <div className="flex flex-col items-center">
+                      <CheckCircle className="text-blue-500 h-6 w-6 mb-2" />
+                      <h3 className="font-medium text-center">{service.name}</h3>
+                    </div>
+                  </div>
                 </Link>
-              </div>
-            </CardContent>
-          </Card>
+              ))}
+            </div>
+          </div>
+        </section>
 
-          {/* Land Survey */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-green-600" />
-                Топографическая съемка
-              </CardTitle>
-              <CardDescription>Топосъемка участков для проектирования и строительства</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="text-sm text-gray-600">
-                  • Масштаб 1:500
-                  <br />• Высотная привязка
-                  <br />• Подземные коммуникации
+        <section className="py-12 bg-gray-50">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-3xl font-bold text-center mb-8">Полезные инструменты</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              <Link href="/xml-to-dxf-converter">
+                <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer border-2 border-orange-200 hover:border-orange-400">
+                  <div className="flex flex-col items-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="48"
+                      height="48"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-orange-500 mb-4"
+                    >
+                      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                      <polyline points="14,2 14,8 20,8" />
+                      <path d="M12 18v-6" />
+                      <path d="m9 15 3 3 3-3" />
+                    </svg>
+                    <h3 className="font-bold text-lg text-center mb-2">Конвертер XML в DXF</h3>
+                    <p className="text-gray-600 text-sm text-center">
+                      Конвертируйте XML-файлы межевых и технических планов в формат DXF для AutoCAD
+                    </p>
+                    <span className="mt-3 bg-orange-500 text-white px-4 py-2 rounded-md text-sm font-medium">
+                      Открыть конвертер
+                    </span>
+                  </div>
                 </div>
-                <div className="text-lg font-semibold text-green-600">от 300 ₽/сотка</div>
-                <Link href="/topograficheskaya-semka">
-                  <Button className="w-full">Рассчитать стоимость</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+              </Link>
 
-          {/* Land Surveying */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="h-5 w-5 text-purple-600" />
-                Межевание участка
-              </CardTitle>
-              <CardDescription>Межевание земельных участков и установление границ</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="text-sm text-gray-600">
-                  • Установление границ
-                  <br />• Межевой план
-                  <br />• Согласование с соседями
+              <Link href="/poisk-uchastka">
+                <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer border-2 border-blue-200 hover:border-blue-400">
+                  <div className="flex flex-col items-center">
+                    <Search className="text-blue-500 mb-4" size={48} />
+                    <h3 className="font-bold text-lg text-center mb-2">Поиск земельного участка</h3>
+                    <p className="text-gray-600 text-sm text-center">
+                      Найдите информацию о земельном участке по кадастровому номеру через базу данных НСПД
+                    </p>
+                    <span className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-md text-sm font-medium">
+                      Найти участок
+                    </span>
+                  </div>
                 </div>
-                <div className="text-lg font-semibold text-green-600">от 15 000 ₽</div>
-                <Link href="/mezhevanie-zemelnogo-uchastka">
-                  <Button className="w-full">Рассчитать стоимость</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
 
-          {/* Plot Search */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="h-5 w-5 text-orange-600" />
-                Поиск участков
-              </CardTitle>
-              <CardDescription>Поиск информации о земельных участках по кадастровому номеру</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="text-sm text-gray-600">
-                  • Кадастровая стоимость
-                  <br />• Площадь и координаты
-                  <br />• Правообладатель
-                </div>
-                <div className="text-lg font-semibold text-green-600">Бесплатно</div>
-                <Link href="/poisk-uchastka">
-                  <Button className="w-full">Найти участок</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* XML to DXF Converter */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-red-600" />
-                Конвертер XML в DXF
-              </CardTitle>
-              <CardDescription>Конвертация XML файлов Росреестра в формат DXF для AutoCAD</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="text-sm text-gray-600">
-                  • Быстрая конвертация
-                  <br />• Сохранение координат
-                  <br />• Готово для AutoCAD
-                </div>
-                <div className="text-lg font-semibold text-green-600">Бесплатно</div>
-                <Link href="/xml-to-dxf-converter">
-                  <Button className="w-full">Конвертировать</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Coordinate Processor */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5 text-indigo-600" />
-                Обработка координат
-              </CardTitle>
-              <CardDescription>Извлечение и конвертация координат из XML файлов Росреестра</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="text-sm text-gray-600">
-                  • Извлечение координат
-                  <br />• Конвертация в WGS84
-                  <br />• Экспорт в разные форматы
-                </div>
-                <div className="text-lg font-semibold text-green-600">Бесплатно</div>
-                <Link href="/coordinate-processor">
-                  <Button className="w-full">Обработать координаты</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="bg-white py-16">
+      <footer className="bg-blue-900 text-white py-8 italic">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">Почему выбирают нас</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Zap className="h-8 w-8 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Быстро</h3>
-              <p className="text-gray-600">Мгновенные расчеты стоимости и быстрое выполнение работ</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="text-left">
+              <h3 className="text-xl font-bold mb-4">ГЕОДЕЗИК</h3>
+              <p>Кадастровые работы в Москве и Московской области с 2005 года</p>
             </div>
-
             <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FileText className="h-8 w-8 text-green-600" />
+              <h3 className="text-xl font-bold mb-4">Контакты</h3>
+              <div className="flex items-center justify-center mb-2">
+                <MessageCircle className="mr-2 h-5 w-5 text-green-400" />
+                <a href="https://wa.me/89296727849" target="_blank" rel="noopener noreferrer">
+                  8 (929) 672-78-49 (WhatsApp)
+                </a>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Профессионально</h3>
-              <p className="text-gray-600">Лицензированные специалисты с многолетним опытом</p>
+              <div className="flex items-center justify-center">
+                <MapPin className="mr-2 h-5 w-5" />
+                <span>Москва и Московская область</span>
+              </div>
             </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Calculator className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Удобно</h3>
-              <p className="text-gray-600">Онлайн калькуляторы и инструменты для самостоятельной работы</p>
+            <div className="text-right">
+              <h3 className="text-xl font-bold mb-4">Режим работы</h3>
+              <p>Пн-Пт: 9:00 - 19:00</p>
+              <p>Сб-Вс: 10:00 - 18:00</p>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Contact Section */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">Остались вопросы?</h2>
-          <p className="text-xl text-gray-600 mb-8">Свяжитесь с нами для консультации по любым кадастровым вопросам</p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="https://wa.me/+79999999999?text=Здравствуйте! Хочу получить консультацию по кадастровым услугам"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button size="lg" className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
-                Написать в WhatsApp
-              </Button>
-            </a>
-            <a href="tel:+79999999999">
-              <Button variant="outline" size="lg" className="w-full sm:w-auto bg-transparent">
-                Позвонить
-              </Button>
-            </a>
+          <div className="mt-8 pt-6 border-t border-blue-800 text-center">
+            <p>© {new Date().getFullYear()} ГЕОДЕЗИК. Все права защищены.</p>
           </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8">
-        <div className="container mx-auto px-4 text-center">
-          <div className="flex items-center justify-center gap-2 text-xl font-bold mb-4">
-            <MapPin className="h-6 w-6" />
-            кадастровик.рф
-          </div>
-          <p className="text-gray-400">© 2024 Кадастровые услуги. Все права защищены.</p>
         </div>
       </footer>
     </div>
