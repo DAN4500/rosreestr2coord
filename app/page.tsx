@@ -1,12 +1,25 @@
-import Image from "next/image"
 import Link from "next/link"
-import { MapPin, MessageCircle, CheckCircle, Search } from "lucide-react"
 import { GeodesicLogo } from "@/components/logo"
-import { AdvancedCalculator } from "@/components/advanced-calculator"
+import { Card, CardDescription, CardTitle } from "@/components/ui/card"
+import {
+  Calculator,
+  MapPin,
+  MessageCircle,
+  Phone,
+  Ruler,
+  FileText,
+  LandPlot,
+  Building,
+  Camera,
+  ArrowRight,
+  Search,
+  CheckCircle,
+} from "lucide-react"
+import { GeodesistIllustration } from "@/components/geodesist-illustration"
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-blue-50 to-green-50">
       <header className="container mx-auto py-4 px-4 flex flex-col md:flex-row justify-between items-center bg-white rounded-b-lg shadow-sm">
         <div className="flex items-center">
           <div className="mr-2">
@@ -26,7 +39,7 @@ export default function Home() {
         <div className="mt-4 md:mt-0">
           <div className="flex flex-col items-end">
             <a
-              href="https://wa.me/89296727849"
+              href="https://wa.me/79296727849"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center text-white bg-green-500 hover:bg-green-600 transition-colors px-3 py-2 rounded-md"
@@ -43,105 +56,173 @@ export default function Home() {
       </header>
 
       <main className="flex-grow">
-        <section className="relative py-16 md:py-24">
-          <div className="absolute inset-0 z-0">
-            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-transparent z-10"></div>
-            <Image
-              src="/placeholder.svg?height=800&width=1600"
-              alt="Геодезические работы"
-              fill
-              className="object-cover"
-              priority
-            />
-          </div>
-
-          <div className="container mx-auto px-4 relative z-20 text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-blue-500 mb-2">Вынос границ земельного участка</h1>
-            <h2 className="text-2xl md:text-3xl text-blue-700 mb-4">в Москве и Московской области</h2>
-            <h3 className="text-xl md:text-2xl mb-6">
-              по фиксированной цене от <span className="text-red-600 font-bold text-3xl md:text-4xl">6000₽</span>
-            </h3>
-
-            <p className="max-w-2xl mx-auto mb-8">Рассчитайте точную стоимость работ с учетом количества точек.</p>
-
-            <div className="flex justify-center mb-8">
-              <AdvancedCalculator />
+        {/* Hero Section */}
+        <section className="relative overflow-hidden py-12 md:py-20">
+          <div className="container mx-auto px-4 text-center">
+            <div className="max-w-4xl mx-auto">
+              <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
+                Точные геодезические работы
+                <br />
+                для вашего участка
+              </h1>
+              <p className="text-lg md:text-xl text-gray-600 mb-8">
+                Вынос границ, межевание, технические планы и топографическая съемка в Москве и Московской области.
+              </p>
+              <div className="flex flex-col sm:flex-row justify-center gap-4">
+                <a
+                  href="https://wa.me/79296727849?text=Здравствуйте! Хочу заказать геодезические работы."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 transition-colors"
+                >
+                  <MessageCircle className="mr-2 h-5 w-5" />
+                  Заказать в WhatsApp
+                </a>
+                <a
+                  href="tel:+79296727849"
+                  className="inline-flex items-center justify-center px-8 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                >
+                  <Phone className="mr-2 h-5 w-5" />
+                  Позвонить
+                </a>
+              </div>
+            </div>
+            <div className="mt-12">
+              <GeodesistIllustration className="max-w-xl mx-auto h-auto" />
             </div>
           </div>
         </section>
 
-        <section className="py-12 bg-white">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold text-center mb-8">Наши услуги</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[
-                { name: "Вынос границ земельного участка", link: "/" },
-                { name: "Технический план", link: "/tehnicheskiy-plan" },
-                { name: "Межевание земельного участка", link: "/mezhevanie-zemelnogo-uchastka" },
-                { name: "Топографическая съемка", link: "/topograficheskaya-semka" },
-              ].map((service, index) => (
-                <Link key={index} href={service.link}>
-                  <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer">
-                    <div className="flex flex-col items-center">
-                      <CheckCircle className="text-blue-500 h-6 w-6 mb-2" />
-                      <h3 className="font-medium text-center">{service.name}</h3>
-                    </div>
-                  </div>
+        {/* Services Section */}
+        <section className="py-12 md:py-20 bg-white">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">Наши услуги</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <Card className="flex flex-col items-center text-center p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <LandPlot className="h-12 w-12 text-blue-500 mb-4" />
+                <CardTitle className="mb-2">Вынос границ земельного участка</CardTitle>
+                <CardDescription className="mb-4">
+                  Точное определение и закрепление границ вашего участка на местности.
+                </CardDescription>
+                <Link href="/mezhevanie-zemelnogo-uchastka" className="text-blue-600 hover:underline flex items-center">
+                  Подробнее <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
-              ))}
+              </Card>
+
+              <Card className="flex flex-col items-center text-center p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <Ruler className="h-12 w-12 text-green-500 mb-4" />
+                <CardTitle className="mb-2">Межевание земельного участка</CardTitle>
+                <CardDescription className="mb-4">
+                  Комплекс работ по установлению, восстановлению и закреплению границ участка.
+                </CardDescription>
+                <Link href="/mezhevanie-zemelnogo-uchastka" className="text-blue-600 hover:underline flex items-center">
+                  Подробнее <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Card>
+
+              <Card className="flex flex-col items-center text-center p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <Building className="h-12 w-12 text-orange-500 mb-4" />
+                <CardTitle className="mb-2">Технический план здания</CardTitle>
+                <CardDescription className="mb-4">
+                  Документ для постановки объекта на кадастровый учет или внесения изменений.
+                </CardDescription>
+                <Link href="/tehnicheskiy-plan" className="text-blue-600 hover:underline flex items-center">
+                  Подробнее <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Card>
+
+              <Card className="flex flex-col items-center text-center p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <Camera className="h-12 w-12 text-purple-500 mb-4" />
+                <CardTitle className="mb-2">Топографическая съемка</CardTitle>
+                <CardDescription className="mb-4">
+                  Создание топографических планов для проектирования и строительства.
+                </CardDescription>
+                <Link href="/topograficheskaya-semka" className="text-blue-600 hover:underline flex items-center">
+                  Подробнее <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Card>
+
+              <Card className="flex flex-col items-center text-center p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <FileText className="h-12 w-12 text-red-500 mb-4" />
+                <CardTitle className="mb-2">Конвертер XML в DXF</CardTitle>
+                <CardDescription className="mb-4">
+                  Преобразуйте кадастровые выписки из XML в формат DXF для CAD-программ.
+                </CardDescription>
+                <Link href="/xml-to-dxf-converter" className="text-blue-600 hover:underline flex items-center">
+                  Подробнее <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Card>
+
+              <Card className="flex flex-col items-center text-center p-6 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <Search className="h-12 w-12 text-cyan-500 mb-4" />
+                <CardTitle className="mb-2">Поиск и обработка участков</CardTitle>
+                <CardDescription className="mb-4">
+                  Найдите участок по кадастровому номеру или извлеките данные из XML.
+                </CardDescription>
+                <Link href="/poisk-uchastka" className="text-blue-600 hover:underline flex items-center">
+                  Подробнее <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Card>
             </div>
           </div>
         </section>
 
-        <section className="py-12 bg-gray-50">
+        {/* Why Choose Us Section */}
+        <section className="py-12 md:py-20 bg-blue-700 text-white">
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold text-center mb-8">Полезные инструменты</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-              <Link href="/xml-to-dxf-converter">
-                <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer border-2 border-orange-200 hover:border-orange-400">
-                  <div className="flex flex-col items-center">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="48"
-                      height="48"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-orange-500 mb-4"
-                    >
-                      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                      <polyline points="14,2 14,8 20,8" />
-                      <path d="M12 18v-6" />
-                      <path d="m9 15 3 3 3-3" />
-                    </svg>
-                    <h3 className="font-bold text-lg text-center mb-2">Конвертер XML в DXF</h3>
-                    <p className="text-gray-600 text-sm text-center">
-                      Конвертируйте XML-файлы межевых и технических планов в формат DXF для AutoCAD
-                    </p>
-                    <span className="mt-3 bg-orange-500 text-white px-4 py-2 rounded-md text-sm font-medium">
-                      Открыть конвертер
-                    </span>
-                  </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-12">Почему выбирают нас?</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="flex flex-col items-center">
+                <div className="bg-white text-blue-700 rounded-full p-4 mb-4">
+                  <CheckCircle className="h-10 w-10" />
                 </div>
-              </Link>
+                <h3 className="text-xl font-semibold mb-2">Опыт с 2005 года</h3>
+                <p className="text-blue-100">Более 15 лет успешной работы в сфере кадастровых и геодезических услуг.</p>
+              </div>
+              <div className="flex flex-col items-center">
+                <div className="bg-white text-blue-700 rounded-full p-4 mb-4">
+                  <MapPin className="h-10 w-10" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Работаем по всей МО</h3>
+                <p className="text-blue-100">Выполняем работы в Москве и любом районе Московской области.</p>
+              </div>
+              <div className="flex flex-col items-center">
+                <div className="bg-white text-blue-700 rounded-full p-4 mb-4">
+                  <Calculator className="h-10 w-10" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Прозрачные цены</h3>
+                <p className="text-blue-100">
+                  Честные и понятные тарифы без скрытых платежей. Рассчитайте стоимость онлайн.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
 
-              <Link href="/poisk-uchastka">
-                <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer border-2 border-blue-200 hover:border-blue-400">
-                  <div className="flex flex-col items-center">
-                    <Search className="text-blue-500 mb-4" size={48} />
-                    <h3 className="font-bold text-lg text-center mb-2">Поиск земельного участка</h3>
-                    <p className="text-gray-600 text-sm text-center">
-                      Найдите информацию о земельном участке по кадастровому номеру через базу данных НСПД
-                    </p>
-                    <span className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-md text-sm font-medium">
-                      Найти участок
-                    </span>
-                  </div>
-                </div>
-              </Link>
+        {/* Call to Action Section */}
+        <section className="py-12 md:py-20 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-center">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">Нужна консультация?</h2>
+            <p className="text-lg md:text-xl mb-8">
+              Свяжитесь с нами, и мы ответим на все ваши вопросы и поможем с выбором услуги.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <a
+                href="https://wa.me/79296727849?text=Здравствуйте! У меня есть вопрос по геодезическим работам."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-blue-600 bg-white hover:bg-blue-100 transition-colors"
+              >
+                <MessageCircle className="mr-2 h-5 w-5" />
+                Написать в WhatsApp
+              </a>
+              <a
+                href="tel:+79296727849"
+                className="inline-flex items-center justify-center px-8 py-3 border border-white text-base font-medium rounded-md text-white bg-transparent hover:bg-white hover:text-blue-600 transition-colors"
+              >
+                <Phone className="mr-2 h-5 w-5" />
+                Позвонить
+              </a>
             </div>
           </div>
         </section>
@@ -158,7 +239,7 @@ export default function Home() {
               <h3 className="text-xl font-bold mb-4">Контакты</h3>
               <div className="flex items-center justify-center mb-2">
                 <MessageCircle className="mr-2 h-5 w-5 text-green-400" />
-                <a href="https://wa.me/89296727849" target="_blank" rel="noopener noreferrer">
+                <a href="https://wa.me/79296727849" target="_blank" rel="noopener noreferrer">
                   8 (929) 672-78-49 (WhatsApp)
                 </a>
               </div>
